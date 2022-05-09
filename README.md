@@ -35,7 +35,7 @@ EMEA
 USA
 - nomad: http://192.168.56.72:4646 \
 - consul: http://192.168.56.72:8500 \
-- VScode: http://192.168.56.71:3000
+- VScode: http://192.168.56.72:3000
 
 
 # How to use this repo
@@ -350,5 +350,21 @@ vagrant@usa:/vagrant/examples$ dig @127.0.0.1 -p 8600 0.client2-svc2.service.eme
 0.client2-svc2.service.emea.consul. 0 IN A	192.168.56.71
 
 ;; Query time: 8 msec
-
+```
+# Login as Root
+You should now be able to SSH as both `vagrant` and `root`:
+```
+$ vagrant ssh
+You are now logged into your VM as 'vagrant'.
+$ ssh root@localhost
+You are now logged into your VM as 'root'.
+# whoami
+root
+# pwd
+/root
+# exit
+You are now back to your VM as 'vagrant'.
+$ exit
+You are now back on your host machine.
+$
 ```
