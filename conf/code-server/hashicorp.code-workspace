@@ -1,6 +1,15 @@
 {
         "folders": [
                 {
+                        "path": "/etc/systemd/system/"
+                },
+                {
+                        "path": "/opt/nomad"
+                },
+                {
+                        "path": "/opt/consul"
+                },
+                {
                         "path": "/vagrant/examples"
                 },
                 {
@@ -13,7 +22,8 @@
     "settings": {},
     "extensions": {
             "recommendations": [
-                    "hashicorp.terraform"
+                    "hashicorp.terraform",
+                    "ms-vscode.theme-tomorrowkit"
             ]
     }
 }
