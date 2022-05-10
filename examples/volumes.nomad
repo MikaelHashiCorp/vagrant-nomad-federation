@@ -1,4 +1,4 @@
-job "example" {
+job "volumes" {
   multiregion {
     strategy {
       max_parallel = 1
@@ -21,11 +21,11 @@ job "example" {
       }
     }
 
-    # volume "proc" {
-    #   type = "host"
-    #   read_only = true
-    #   source = "proc"
-    # }
+    volume "proc" {
+      type = "host"
+      read_only = true
+      source = "proc"
+    }
 
     task "redis" {
       driver = "docker"
@@ -36,11 +36,11 @@ job "example" {
         ports = ["db"]
       }
 
-      # volume_mount{
-      #   volume = "proc"
-      #   destination = "/proc/"
-      #   read_only = true
-      # }
+      volume_mount{
+        volume = "proc"
+        destination = "/proc/"
+        read_only = true
+      }
 
       resources {
         cpu    = 500

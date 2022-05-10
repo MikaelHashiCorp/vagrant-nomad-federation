@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../../etc/nomad.d"
+		},
+		{
+			"path": ".."
+		}
+	],
+	"settings": {}
+}

@@ -12,7 +12,7 @@ enable_debug=true
 server {
   enabled = true
   bootstrap_expect = 1
-  authoritative_region = "emea"
+  authoritative_region = "usa"
   server_join {  retry_join = [ "192.168.56.72", "192.168.56.71:4648" ]   retry_interval = "15s"}
   license_path = "/vagrant/lic/nomad.hclic"
 }
@@ -25,6 +25,7 @@ plugin "raw_exec" {
 
 client {
     enabled = true
+
     server_join {
       retry_join = ["192.168.56.72"]
     }
@@ -48,7 +49,7 @@ client {
     }
     
     options = {
-      # "docker.auth.config" = "/root/.docker/config.json"  # Used for Docker login credentials 
+      "docker.auth.config" = "/root/.docker/config.json"  # Used for Docker login credentials 
       "docker.volumes.enabled" = "true"
       "docker.privileged.enabled" = "true"
     }

@@ -18,3 +18,5 @@
 *.hclic
 *.DS_Store
 *.log
+*.log
+examples/ddagent-install.log
