@@ -1,0 +1,6 @@
+{
+  "log_file": "/var/log/nomad/nomad.log",
+  "log_json": true,
+  "log_rotate_max_files": "-1"
+}
+  

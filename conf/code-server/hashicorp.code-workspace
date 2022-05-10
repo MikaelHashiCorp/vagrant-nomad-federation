@@ -1,6 +1,12 @@
 {
         "folders": [
                 {
+                        "path": "/home/vagrant"
+                },
+                {
+                        "path": "/etc/datadog-agent/"
+                },
+                {
                         "path": "/etc/systemd/system/"
                 },
                 {
@@ -10,7 +16,7 @@
                         "path": "/opt/consul"
                 },
                 {
-                        "path": "/vagrant/examples"
+                        "path": "/vagrant/"
                 },
                 {
                         "path": "/etc/nomad.d/"

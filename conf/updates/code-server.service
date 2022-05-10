@@ -1,0 +1,15 @@
+[Unit]
+Description=Code Server
+After=network.target
+
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/home/vagrant
+Environment="PASSWORD=supersecretpassword"
+ExecStart=/usr/bin/code-server --bind-addr=0.0.0.0:3000 --auth=none --user-data-dir=/home/vagrant/code-server --disable-update-check --disable-telemetry
+
+
+[Install]
+WantedBy=multi-user.target

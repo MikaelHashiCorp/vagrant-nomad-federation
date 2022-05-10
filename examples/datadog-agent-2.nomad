@@ -102,15 +102,15 @@ logs_enabled: true
         image = "gcr.io/datadoghq/agent:7.32.3"
         ports = ["trace","statsd"]
         volumes = [
-            "local/conf.yaml:/etc/datadog-agent/conf.d/consul.d/conf.yaml",
-            "local/datadog.yaml:/etc/datadog-agent/datadog.yaml"
+            "local:/etc/datadog-agent/conf.d/consul.d",
+            "local:/etc/datadog-agent"
         ]
       }
-      # volume_mount{
-      #   volume = "consul_logs"
-      #   destination = "/var/log/consul/"
-      #   read_only = true
-      # }
+      volume_mount{
+        volume = "consul_logs"
+        destination = "/var/log/consul/"
+        read_only = true
+      }
       volume_mount{
         volume = "cgroups"
         destination = "/sys/fs/cgroup"
@@ -146,8 +146,8 @@ logs_enabled: true
       }
 
       resources {
-        cpu    = 600 # value in mhz
-        memory = 1024
+        cpu    = 600  # value in mhz
+        memory = 300  # 1024
       }
     }
   }
