@@ -17,3 +17,4 @@
 *.lic
 *.hclic
 *.DS_Store
+examples/journalctl_consul.json
