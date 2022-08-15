@@ -18,3 +18,5 @@
 *.hclic
 *.DS_Store
 examples/journalctl_consul.json
+examples/usa-agent-info.json
+examples/usa-agent-info2.json
