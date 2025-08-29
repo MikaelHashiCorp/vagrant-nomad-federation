@@ -1,13 +1,13 @@
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y zip unzip nginx
+apt-get install -y zip unzip nginx jq
 
 # NOMAD OSS / ENTERPRISE manually
 pushd /var/tmp
-export NOMAD_VERSION="1.2.6"
-# curl -fsSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_amd64.zip -o nomad.zip
-curl -fsSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}+ent/nomad_${NOMAD_VERSION}+ent_linux_amd64.zip -o nomad.zip
-unzip nomad.zip
+export NOMAD_VERSION="1.10.4"
+# curl -fsSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_arm64.zip -o nomad.zip
+curl -fsSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}+ent/nomad_${NOMAD_VERSION}+ent_linux_arm64.zip -o nomad.zip
+unzip -o nomad.zip
 sudo useradd --system --home /etc/nomad.d --shell /bin/false nomad
 chown root:root nomad
 mv nomad /usr/bin/
@@ -35,10 +35,10 @@ sudo cp `func-e which` /usr/local/bin
 
 
 # CONSUL OSS or ENTERPRISE manually
-export CONSUL_VERSION="1.11.4"
-curl -fsSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip -o consul.zip
-# curl -fsSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}+ent/consul_${CONSUL_VERSION}+ent_linux_amd64.zip -o consul.zip
-unzip consul.zip
+export CONSUL_VERSION="1.21.4"
+# curl -fsSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_arm64.zip -o consul.zip
+curl -fsSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}+ent/consul_${CONSUL_VERSION}+ent_linux_arm64.zip -o consul.zip
+unzip -o consul.zip
 useradd --system --home /etc/consul.d --shell /bin/false consul
 chown root:root consul
 mv consul /usr/bin/
@@ -98,7 +98,7 @@ systemctl restart nomad
 
 # Env variables and autocompletion
 cp -ap /vagrant/conf/emea-env.sh /etc/profile.d/
-
+alias env="env -0 | sort -z | tr '\0' '\n'"
 
 # nginx
 rm /var/www/html/index.nginx-debian.html
@@ -109,9 +109,7 @@ systemctl restart nginx
 curl -fsSL https://code-server.dev/install.sh | sh
 cp /vagrant/conf/code-server.service /etc/systemd/system/             # copy systemd service
 cp -R /vagrant/conf/code-server /home/vagrant/                        # copy code-server config
-
-# code-server terraform extention
-code-server --install-extension hashicorp.terraform --force --extensions-dir /home/vagrant/code-server/extensions
+chown -R vagrant:vagrant /home/vagrant/code-server
 
 # code-server is service
 systemctl enable code-server

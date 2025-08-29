@@ -1,0 +1,48 @@
+{
+  "snapshot_agent": {
+    "http_addr": "127.0.0.1:8500",
+    "token": "3933b752-e701-4dfd-222f-c94ff3343a66",
+    "datacenter": "",
+    "ca_file": "",
+    "ca_path": "",
+    "cert_file": "",
+    "key_file": "",
+    "license_path": "/vagrant/lic/consul.hclic",
+    "tls_server_name": "",
+    "log": {
+      "level": "INFO",
+      "enable_syslog": false,
+      "syslog_facility": "LOCAL0"
+    },
+    "snapshot": {
+      "interval": "1h",
+      "retain": 30,
+      "stale": false,
+      "service": "consul-snapshot",
+      "deregister_after": "72h",
+      "lock_key": "consul-snapshot/lock",
+      "max_failures": 3,
+      "local_scratch_path": ""
+    },
+    "local_storage": {
+      "path": "."
+    },
+    "aws_storage": {
+      "access_key_id": "",
+      "secret_access_key": "",
+      "s3_region": "",
+      "s3_bucket": "",
+      "s3_key_prefix": "consul-snapshot",
+      "s3_server_side_encryption": false,
+      "s3_static_snapshot_name": ""
+    },
+    "azure_blob_storage": {
+      "account_name": "",
+      "account_key": "",
+      "container_name": ""
+    },
+    "google_storage": {
+      "bucket": ""
+    }
+  }
+}
