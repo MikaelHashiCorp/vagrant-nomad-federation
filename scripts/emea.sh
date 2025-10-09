@@ -2,38 +2,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y zip unzip nginx jq
 
-# install nomad ENTERPRISE manually
-pushd /var/tmp
-export NOMAD_VERSION="1.10.4"
-curl -fsSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}+ent/nomad_${NOMAD_VERSION}+ent_linux_arm64.zip -o nomad.zip
-# curl -fsSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_arm64.zip -o nomad.zip
-unzip -o nomad.zip
-sudo useradd --system --home /etc/nomad.d --shell /bin/false nomad
-chown root:root nomad
-mv nomad /usr/bin/
-
-# create directories
-mkdir -p /opt/nomad
-mkdir -p /etc/nomad.d
-
-chmod 700 /opt/nomad
-chmod 700 /etc/nomad.d
-
-cp -ap /vagrant/conf/emea-nomad.hcl /etc/nomad.d/
-chown -R nomad: /etc/nomad.d /opt/nomad/
-
-cp -ap /vagrant/conf/nomad.service /etc/systemd/system/
-
-systemctl enable nomad
-systemctl start nomad
-
-
-# ENVOY #
-#########
-curl -fsSL https://func-e.io/install.sh | bash -s -- -b /usr/local/bin
-sudo cp `func-e which` /usr/local/bin
-
-# consul
+# CONSUL FIRST - Nomad depends on it
 export CONSUL_VERSION="1.21.4"
 # curl -fsSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_arm64.zip -o consul.zip
 curl -fsSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}+ent/consul_${CONSUL_VERSION}+ent_linux_arm64.zip -o consul.zip
@@ -55,10 +24,80 @@ cp -ap /vagrant/conf/emea-consul.hcl /etc/consul.d/
 chown -R consul:consul /etc/consul.d/ /opt/consul/
 chmod 640 /etc/consul.d/*.hcl
 
-
 systemctl enable consul
 systemctl start consul
 
+# Wait for Consul to be ready
+echo "Waiting for Consul to be ready..."
+for i in {1..30}; do
+  if curl -s -f http://192.168.56.71:8500/v1/status/leader > /dev/null 2>&1; then
+    echo "Consul is ready"
+    break
+  fi
+  echo "Waiting for Consul... attempt $i/30"
+  sleep 2
+done
+
+# NOMAD SECOND - after Consul is ready
+pushd /var/tmp
+export NOMAD_VERSION="1.10.4"
+curl -fsSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}+ent/nomad_${NOMAD_VERSION}+ent_linux_arm64.zip -o nomad.zip
+# curl -fsSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_arm64.zip -o nomad.zip
+unzip -o nomad.zip
+sudo useradd --system --home /etc/nomad.d --shell /bin/false nomad
+chown root:root nomad
+mv nomad /usr/bin/
+
+# create directories
+mkdir -p /opt/nomad
+mkdir -p /etc/nomad.d
+mkdir -p /opt/alloc_mounts
+
+chmod 700 /opt/nomad
+chmod 700 /etc/nomad.d
+
+cp -ap /vagrant/conf/emea-nomad.hcl /etc/nomad.d/
+chown -R nomad: /etc/nomad.d /opt/nomad/ /opt/alloc_mounts
+
+cp -ap /vagrant/conf/nomad.service /etc/systemd/system/
+
+# reload systemd and enable/start nomad
+systemctl daemon-reload
+systemctl enable nomad
+systemctl start nomad
+
+# Wait for nomad to be ready and check status
+sleep 10
+echo "Checking Nomad service status..."
+systemctl is-active --quiet nomad || (echo "Nomad service failed, attempting restart..." && systemctl restart nomad && sleep 5)
+
+# Verify Nomad is responding
+echo "Testing Nomad API..."
+for i in {1..30}; do
+  if curl -s -f http://192.168.56.71:4646/v1/status/leader > /dev/null 2>&1; then
+    echo "Nomad API is responding"
+    break
+  fi
+  echo "Waiting for Nomad API... attempt $i/30"
+  sleep 2
+done
+
+# Check Consul registration
+echo "Checking Nomad registration in Consul..."
+sleep 5
+for i in {1..15}; do
+  if curl -s http://192.168.56.71:8500/v1/health/service/nomad | grep -q "nomad"; then
+    echo "Nomad is registered in Consul"
+    break
+  fi
+  echo "Waiting for Nomad to register in Consul... attempt $i/15"
+  sleep 2
+done
+
+# ENVOY #
+#########
+curl -fsSL https://func-e.io/install.sh | bash -s -- -b /usr/local/bin
+sudo cp `func-e which` /usr/local/bin
 
 # optional liquidprompt #
 #########################
@@ -85,14 +124,13 @@ sudo apt-get -y install docker-ce docker-ce-cli containerd.io
 
 # add auto completion for docker
 sudo curl -fsSL https://raw.githubusercontent.com/docker/compose/1.29.2/contrib/completion/bash/docker-compose -o /etc/bash_completion.d/docker-compose
-# sudo curl -fsSL https://github.com/docker/docker-ce/blob/master/components/cli/contrib/completion/bash/docker -o /etc/bash_completion.d/docker.sh
+# sudo curl -fsSL https://github.com/docker/docker-ce/blob/master/components/cli/contrib/completion/bash/docker -o /etc/bash_completion.sh
 
 # docker post installation
 usermod -aG docker nomad
 usermod -aG docker vagrant
 
 systemctl restart nomad
-
 
 # Env variables and autocompletion
 cp -ap /vagrant/conf/emea-env.sh /etc/profile.d/

@@ -1,13 +1,13 @@
 [Unit]
 Description=Nomad
 Documentation=https://www.nomadproject.io/docs/
-Wants=network-online.target
-After=network-online.target
+Wants=network-online.target consul.service
+After=network-online.target consul.service
 
 [Service]
 User=nomad
 Group=nomad
-ExecReload=/bin/kill -HUP 
+ExecReload=/bin/kill -HUP $MAINPID
 ExecStart=/usr/bin/nomad agent -config /etc/nomad.d/
 KillMode=process
 KillSignal=SIGINT
