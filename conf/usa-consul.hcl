@@ -3,7 +3,7 @@ data_dir = "/opt/consul/"
 
 datacenter = "usa"
 
-# license_path = "/vagrant/lic/consul.hclic"
+license_path = "/vagrant/lic/consul.hclic"
 
 server = true
 

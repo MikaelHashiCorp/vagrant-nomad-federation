@@ -41,7 +41,7 @@ USA
 # How to use this repo
 Clone and cd into repo
 ```
-git clone git@github.com:ion-training/vagrant-nomad-federation.git
+git clone gh repo clone MikaelHashiCorp/vagrant-nomad-federation
 ```
 ```
 cd vagrant-nomad-federation
