@@ -18,18 +18,76 @@ Vagrant.configure("2") do |config|
     p.customize ["set", :id, "--adaptive-hypervisor", "on"]
   end
 
-  config.vm.define "emea" do |emea|
-    emea.vm.hostname = "emea"
-    emea.vm.provision "shell", path: "scripts/emea.sh"
-    emea.vm.network "private_network", ip: "192.168.56.71"
-    emea.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
+  # EMEA Region - 3 Nomad Servers + 2 Nomad Clients
+  config.vm.define "emea-server-1" do |node|
+    node.vm.hostname = "emea-server-1"
+    node.vm.provision "shell", path: "scripts/emea-server-1.sh"
+    node.vm.network "private_network", ip: "192.168.56.71"
+    node.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
   end
 
-  config.vm.define "usa" do |usa|
-    usa.vm.hostname = "usa"
-    usa.vm.provision "shell", path: "scripts/usa.sh"
-    usa.vm.network "private_network", ip: "192.168.56.72"
-    usa.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
+  config.vm.define "emea-server-2" do |node|
+    node.vm.hostname = "emea-server-2"
+    node.vm.provision "shell", path: "scripts/emea-server-2.sh"
+    node.vm.network "private_network", ip: "192.168.56.72"
+    node.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
+  end
+
+  config.vm.define "emea-server-3" do |node|
+    node.vm.hostname = "emea-server-3"
+    node.vm.provision "shell", path: "scripts/emea-server-3.sh"
+    node.vm.network "private_network", ip: "192.168.56.73"
+    node.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
+  end
+
+  config.vm.define "emea-client-1" do |node|
+    node.vm.hostname = "emea-client-1"
+    node.vm.provision "shell", path: "scripts/emea-client-1.sh"
+    node.vm.network "private_network", ip: "192.168.56.74"
+    node.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
+  end
+
+  config.vm.define "emea-client-2" do |node|
+    node.vm.hostname = "emea-client-2"
+    node.vm.provision "shell", path: "scripts/emea-client-2.sh"
+    node.vm.network "private_network", ip: "192.168.56.75"
+    node.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
+  end
+
+  # USA Region - 3 Nomad Servers + 2 Nomad Clients
+  config.vm.define "usa-server-1" do |node|
+    node.vm.hostname = "usa-server-1"
+    node.vm.provision "shell", path: "scripts/usa-server-1.sh"
+    node.vm.network "private_network", ip: "192.168.56.81"
+    node.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
+  end
+
+  config.vm.define "usa-server-2" do |node|
+    node.vm.hostname = "usa-server-2"
+    node.vm.provision "shell", path: "scripts/usa-server-2.sh"
+    node.vm.network "private_network", ip: "192.168.56.82"
+    node.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
+  end
+
+  config.vm.define "usa-server-3" do |node|
+    node.vm.hostname = "usa-server-3"
+    node.vm.provision "shell", path: "scripts/usa-server-3.sh"
+    node.vm.network "private_network", ip: "192.168.56.83"
+    node.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
+  end
+
+  config.vm.define "usa-client-1" do |node|
+    node.vm.hostname = "usa-client-1"
+    node.vm.provision "shell", path: "scripts/usa-client-1.sh"
+    node.vm.network "private_network", ip: "192.168.56.84"
+    node.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
+  end
+
+  config.vm.define "usa-client-2" do |node|
+    node.vm.hostname = "usa-client-2"
+    node.vm.provision "shell", path: "scripts/usa-client-2.sh"
+    node.vm.network "private_network", ip: "192.168.56.85"
+    node.ssh.extra_args = ["-t", "cd /vagrant/examples/; bash --login"]
   end
 
 end

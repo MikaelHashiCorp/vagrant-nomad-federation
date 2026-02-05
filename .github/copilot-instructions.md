@@ -2,15 +2,21 @@
 
 This is a Vagrant-based demo environment showcasing Nomad Federation across two regions (EMEA/USA) with Consul WAN federation.
 
-**⚠️ Migration Status**: Currently migrating from VirtualBox/AMD64 to Parallels/ARM64 architecture. Project targets macOS with Parallels Desktop for clean builds and complete functionality.
+**⚠️ Migration Status**: Currently migrated to Parallels/ARM64 architecture. Project targets macOS with Parallels Desktop for clean builds and complete functionality.
 
 ## Architecture Overview
 
-**Two-region federation topology:**
-- **EMEA region** (192.168.56.71): `emea-dc1` datacenter, authoritative region
-- **USA region** (192.168.56.72): `usa-dc1` datacenter, non-authoritative region
-- Both regions run Nomad Enterprise + Consul Enterprise with full server/client capabilities
-- Consul provides cross-region WAN federation (`retry_join_wan` configuration)
+**Production-like federation topology with high availability:**
+- **EMEA region**: 3 Nomad servers + 2 Nomad clients (192.168.56.71-75)
+  - Datacenter: `emea-dc1` (authoritative region)
+  - 3 Consul servers for HA quorum
+  - 2 Consul clients on Nomad client nodes
+- **USA region**: 3 Nomad servers + 2 Nomad clients (192.168.56.81-85)
+  - Datacenter: `usa-dc1` (non-authoritative region)
+  - 3 Consul servers for HA quorum
+  - 2 Consul clients on Nomad client nodes
+- **Total**: 8 VMs (6 Nomad servers + 4 Nomad clients)
+- Consul provides cross-region WAN federation between `emea-dc1` and `usa-dc1`
 - Nomad federation uses `authoritative_region = "emea"` pattern
 
 ## Platform Requirements
@@ -24,22 +30,40 @@ This is a Vagrant-based demo environment showcasing Nomad Federation across two 
 
 ## Key Components & File Structure
 
-- `Vagrantfile`: Defines two VMs with Parallels provider, static IPs, and region-specific provisioning
-- `scripts/{emea,usa}.sh`: Region-specific provision scripts installing HashiCorp stack + dependencies (ARM64 binaries)
-- `conf/{emea,usa}-{nomad,consul}.hcl`: Region-specific configurations with federation settings
-- `conf/*-env.sh`: Environment setup with `NOMAD_ADDR` and CLI autocompletion
+### Core Configuration
+- `Vagrantfile`: Defines 8 VMs with Parallels provider, static IPs, and node-specific provisioning
+- `scripts/{emea,usa}-{server,client}-{1,2,3}.sh`: Node-specific provision scripts installing HashiCorp stack + dependencies (ARM64 binaries)
+- `conf/{emea,usa}-{server,client}-{1,2,3}-{nomad,consul}.hcl`: Node-specific configurations with federation settings
+- `conf/{emea,usa}-{server,client}-{1,2,3}-env.sh`: Environment setup with `NOMAD_ADDR` and CLI autocompletion
 - `examples/`: Sample Nomad job files demonstrating multi-region deployments
 - `lic/`: License files directory (gitignored, must be manually populated)
+
+### Node Roles
+**Server Nodes (6 total):**
+- Run both Nomad server and Consul server
+- Handle cluster management, scheduling, and state
+- Form 3-node quorum per region for HA
+
+**Client Nodes (4 total):**
+- Run Nomad client and Consul client
+- Execute workloads (Docker, raw_exec)
+- Connect to local Consul agents for service discovery
 
 ## Critical Networking & Federation Setup
 
 **IP Configuration:**
-- EMEA: `192.168.56.71` (bind_addr for both Nomad/Consul)
-- USA: `192.168.56.72` (bind_addr for both Nomad/Consul)
+- **EMEA Servers**: 192.168.56.71 (server-1), .72 (server-2), .73 (server-3)
+- **EMEA Clients**: 192.168.56.74 (client-1), .75 (client-2)
+- **USA Servers**: 192.168.56.81 (server-1), .82 (server-2), .83 (server-3)
+- **USA Clients**: 192.168.56.84 (client-1), .85 (client-2)
 
 **Federation Patterns:**
-- Nomad: Cross-region server join via `server_join.retry_join` with explicit ports (`:4648`)
-- Consul: WAN federation via `retry_join_wan` between datacenters
+- **Nomad**: Cross-region server join via `server_join.retry_join` with explicit ports (`:4648`)
+  - Each region has `bootstrap_expect = 3` for 3-node quorum
+  - USA servers include EMEA leader IP for cross-region federation
+- **Consul**: WAN federation via `retry_join_wan` between datacenters
+  - Each datacenter has `bootstrap_expect = 3` for 3-node quorum
+  - EMEA servers join USA servers via WAN, and vice versa
 - Both use EMEA as authoritative region for leadership
 
 ## Essential Workflows
@@ -56,7 +80,7 @@ vagrant plugin install vagrant-parallels
 touch lic/nomad.hclic && echo "LICENSE_CONTENT" > lic/nomad.hclic
 touch lic/consul.hclic && echo "LICENSE_CONTENT" > lic/consul.hclic
 
-# Provision ARM64 VMs with Parallels
+# Provision ARM64 VMs with Parallels (all 8 nodes)
 vagrant up
 ```
 
@@ -66,12 +90,14 @@ vagrant up
 - Guest tools management disabled to avoid conflicts during provisioning
 
 **Access Points:**
-- Main portal: `http://192.168.56.71` or `http://192.168.56.72` (nginx landing page)
-- Nomad UI: `:4646`, Consul UI: `:8500`, VSCode: `:3000` (per region)
+- Main portals: `http://192.168.56.71` (EMEA) or `http://192.168.56.81` (USA)
+- Nomad UI: `:4646` on any server node
+- Consul UI: `:8500` on any server node
+- VSCode: `:3000` on emea-server-1
 
 **Multi-region Job Operations:**
 ```bash
-vagrant ssh emea
+vagrant ssh emea-server-1
 cd /vagrant/examples
 nomad job run redis-multi-region.nomad  # Deploys to both regions automatically
 nomad job status -region emea redis-multi-region
@@ -80,30 +106,34 @@ nomad job status -region usa redis-multi-region
 
 **Federation Verification:**
 ```bash
-# Check Nomad federation
-nomad server members  # Shows cross-region Nomad servers
-nomad status         # Should show no errors
+# Check Nomad federation (should show 6 servers)
+nomad server members
 
-# Check Consul federation and Nomad registration
-consul members -wan   # Shows Consul WAN federation
-consul catalog services | grep nomad  # Should show nomad service
-curl -s http://192.168.56.71:8500/v1/health/service/nomad  # EMEA Nomad health
-curl -s http://192.168.56.72:8500/v1/health/service/nomad  # USA Nomad health
+# Check Consul WAN federation (should show 6 servers)
+consul members -wan
+
+# Check Nomad clients (should show 4 clients)
+nomad node status
+
+# Check Consul registration
+consul catalog services | grep nomad
+curl -s http://192.168.56.71:8500/v1/health/service/nomad  # EMEA
+curl -s http://192.168.56.81:8500/v1/health/service/nomad  # USA
 
 # Test Nomad API directly
-curl -s http://192.168.56.71:4646/v1/status/leader  # EMEA Nomad API
-curl -s http://192.168.56.72:4646/v1/status/leader  # USA Nomad API
+curl -s http://192.168.56.71:4646/v1/status/leader  # EMEA
+curl -s http://192.168.56.81:4646/v1/status/leader  # USA
 ```
 
 **Troubleshooting:**
 ```bash
-# Check service status
+# Check service status on any node
 sudo systemctl status nomad consul
-sudo journalctl -xeu nomad.service  # View Nomad logs
-sudo journalctl -xeu consul.service # View Consul logs
+sudo journalctl -xeu nomad.service
+sudo journalctl -xeu consul.service
 
 # Check Nomad-Consul integration
-nomad node status  # Should show nodes if Consul integration works
+nomad node status  # Should show 4 client nodes
 consul catalog services  # Should include nomad and nomad-client
 
 # Manual service restart if needed
@@ -118,17 +148,25 @@ sudo systemctl restart nomad
 ```hcl
 job "example" {
   multiregion {
-    region "emea" { count = 1; datacenters = ["emea-dc1"] }
-    region "usa" { count = 1; datacenters = ["usa-dc1"] }
+    region "emea" { 
+      count = 1
+      datacenters = ["emea-dc1"] 
+    }
+    region "usa" { 
+      count = 1
+      datacenters = ["usa-dc1"] 
+    }
   }
 }
 ```
 
 **Configuration Conventions:**
-- Region-specific configs use `{region}-{service}.hcl` naming
+- Node-specific configs use `{region}-{role}-{number}-{service}.hcl` naming
 - License paths always point to `/vagrant/lic/{service}.hclic`
 - All services use systemd with dedicated user accounts
-- Both regions enable raw_exec plugin and Docker driver
+- Server nodes: Nomad server + Consul server (no client mode)
+- Client nodes: Nomad client + Consul client (no server mode)
+- Both roles enable raw_exec plugin and Docker driver
 
 **Service Integration:**
 - Consul service discovery with Nomad integration
@@ -155,4 +193,39 @@ job "example" {
 - Adaptive hypervisor enabled for performance optimization
 - Shared folders use Parallels provider for `/vagrant` mount
 
-When modifying configurations, remember federation requires both regions to be configured consistently for cross-region communication to work properly.
+## High Availability Features
+
+**Consul HA:**
+- 3 servers per datacenter provide fault tolerance
+- Can lose 1 server per datacenter without losing quorum
+- WAN federation maintains cross-datacenter connectivity
+
+**Nomad HA:**
+- 3 servers per region provide fault tolerance
+- Can lose 1 server per region without losing quorum
+- Cross-region federation enables global job deployment
+
+**Client Resilience:**
+- 2 clients per region provide workload distribution
+- Client failures don't affect cluster availability
+- Workloads automatically rescheduled on healthy clients
+
+## SSH Access
+
+```bash
+# EMEA region
+vagrant ssh emea-server-1  # Primary server
+vagrant ssh emea-server-2
+vagrant ssh emea-server-3
+vagrant ssh emea-client-1
+vagrant ssh emea-client-2
+
+# USA region
+vagrant ssh usa-server-1   # Primary server
+vagrant ssh usa-server-2
+vagrant ssh usa-server-3
+vagrant ssh usa-client-1
+vagrant ssh usa-client-2
+```
+
+When modifying configurations, remember federation requires both regions to be configured consistently for cross-region communication to work properly. Server nodes must have matching `bootstrap_expect` values within their region, and client nodes must point to their regional servers for proper cluster joining.
